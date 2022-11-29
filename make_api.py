@@ -3,7 +3,10 @@ from pydantic import create_model
 from inspect import signature, Signature, Parameter
 import inspect
 from typing import Callable
+from types import ModuleType
 from arity import is_zero
+import example
+from functools import partial
 
 
 def signature_to_model(sig: Signature):
@@ -19,7 +22,7 @@ def signature_to_model(sig: Signature):
 
 
 def func_as_pydantic_model(func: Callable):
-    return create_model(func.__name__, **signature_to_model(signature(func)))
+    return create_model(f'{func.__name__} args', **signature_to_model(signature(func)))
 
 
 def hello():
@@ -36,6 +39,7 @@ app = FastAPI()
 
 def add_to_app(func: Callable):
     global app
+    print('hey')
     if is_zero(func):
         app.get(f"/{func.__name__}")(func)
     else:
@@ -50,5 +54,18 @@ def add_to_app(func: Callable):
         app.post(f'/{func.__name__}')(inner)
 
 
+def add_module_to_app(module: ModuleType):
+    def is_function(name: str) -> bool:
+        return not name.startswith('__') and callable(getattr(module, name))
+
+    functions = map(partial(getattr, module),
+                    filter(is_function, dir(module)))
+
+    list(map(add_to_app, functions))
+
+
 add_to_app(f)
 add_to_app(hello)
+add_module_to_app(example)
+if __name__ == '__main__':
+    print(getattr(example, 'add'))
