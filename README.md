@@ -1,4 +1,4 @@
-# functionalapi
+# auto fastapi
 
 a tool used for auto deploying an api from a preexisting module.
 this strips the need of tayloring for deployability, with the actual api being built automatically, with docs. 
