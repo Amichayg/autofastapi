@@ -21,8 +21,12 @@ def signature_to_model(sig: Signature):
     }
 
 
+def func_name(func):
+    return func.__name__ + str(signature(func))
+
+
 def func_as_pydantic_model(func: Callable):
-    return create_model(f'{func.__name__ + str(signature(func))} args', **signature_to_model(signature(func)))
+    return create_model(f'{func_name(func)} args', **signature_to_model(signature(func)))
 
 
 def hello():
@@ -41,7 +45,12 @@ def add_to_app(func: Callable):
     global app
     print('hey')
     if is_zero(func):
-        app.get(f"/{func.__name__ + str(signature(func))}")(func)
+        def inner():
+            return func()
+
+        inner.__name__ = func_name(func)
+        inner.__doc__ = func.__doc__
+        app.get(f"/{func.__name__}")(inner)
     else:
         model = func_as_pydantic_model(func)
 
@@ -49,7 +58,7 @@ def add_to_app(func: Callable):
             """panda"""
             return func(**args.dict())
 
-        inner.__name__ = func.__name__ + str(signature(func))
+        inner.__name__ = func_name(func)
         inner.__doc__ = func.__doc__
         app.post(f'/{func.__name__}')(inner)
 
