@@ -5,8 +5,9 @@ import inspect
 from typing import Callable
 from types import ModuleType
 from arity import is_zero
-import example
+import examplesource
 from functools import partial
+from fn import F, _
 
 
 def signature_to_model(sig: Signature):
@@ -32,8 +33,7 @@ def func_as_pydantic_model(func: Callable):
 app = FastAPI()
 
 
-def add_to_app(func: Callable):
-    global app
+def add_to_app(app: FastAPI, func: Callable):
     if is_zero(func):
         def inner():
             return func()
@@ -53,14 +53,19 @@ def add_to_app(func: Callable):
         app.post(f'/{func.__name__}')(inner)
 
 
-def add_module_to_app(module: ModuleType):
+def add_module_to_app(app: FastAPI, module: ModuleType):
+    print('hey')
     def is_function(name: str) -> bool:
         return not name.startswith('__') and callable(getattr(module, name))
 
     functions = map(partial(getattr, module),
                     filter(is_function, dir(module)))
 
-    list(map(add_to_app, functions))
+    list(map(partial(add_to_app, app), functions))
 
 
-add_module_to_app(example)
+from importlib import import_module
+from pathlib import Path
+
+add_path = F(add_module_to_app, app) << import_module << F(_.stem)
+list(map(add_path, Path('.').glob('*source.py')))
