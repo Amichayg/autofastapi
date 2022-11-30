@@ -29,21 +29,11 @@ def func_as_pydantic_model(func: Callable):
     return create_model(f'{func_name(func)} args', **signature_to_model(signature(func)))
 
 
-def hello():
-    return "whatsup"
-
-
-def f(a: int):
-    """ increments a by 1"""
-    return a + 1
-
-
 app = FastAPI()
 
 
 def add_to_app(func: Callable):
     global app
-    print('hey')
     if is_zero(func):
         def inner():
             return func()
@@ -51,11 +41,11 @@ def add_to_app(func: Callable):
         inner.__name__ = func_name(func)
         inner.__doc__ = func.__doc__
         app.get(f"/{func.__name__}")(inner)
+
     else:
         model = func_as_pydantic_model(func)
 
         def inner(args: model):
-            """panda"""
             return func(**args.dict())
 
         inner.__name__ = func_name(func)
@@ -73,8 +63,4 @@ def add_module_to_app(module: ModuleType):
     list(map(add_to_app, functions))
 
 
-add_to_app(f)
-add_to_app(hello)
 add_module_to_app(example)
-if __name__ == '__main__':
-    print(getattr(example, 'add'))
